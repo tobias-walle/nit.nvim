@@ -8,17 +8,16 @@ CONTENTS                                                        *nit-contents*
     3. Commands ..................................... |nit-commands|
     4. API .......................................... |nit-api|
     5. Configuration ................................ |nit-configuration|
-    6. Comment Types ................................ |nit-comment-types|
-    7. Export Format ................................ |nit-export-format|
+    6. Export Format ................................ |nit-export-format|
 
 ==============================================================================
 INTRODUCTION                                                *nit-introduction*
 
-nit.nvim is a Neovim plugin for leaving typed review comments in code and
+nit.nvim is a Neovim plugin for leaving review comments in code and
 exporting them as structured feedback for AI agents.
 
 Features:~
-  • Typed comments (ISSUE, NOTE)
+  • Comments with [nit] prefix
   • Comments follow line movements via extmarks
   • Export all comments as LLM-optimized markdown
   • Navigate between comments
@@ -61,7 +60,6 @@ COMMANDS                                                        *nit-commands*
     In the input window (starts in insert mode):
       - Esc (insert mode): Switch to normal mode
       - Enter (normal mode): Submit comment
-      - Tab/Shift-Tab (normal mode): Cycle through comment types
       - Esc or q (normal mode): Cancel
       - Empty submit: Delete existing comment
 
@@ -106,17 +104,16 @@ require('nit').setup({opts})                                    *nit.setup()*
         })
 <
 
-require('nit').add({bufnr}, {lnum}, {type}, {text})               *nit.add()*
+require('nit').add({bufnr}, {lnum}, {text})                       *nit.add()*
     Add a comment programmatically.
 
     Parameters: ~
         {bufnr} (number|nil) Buffer number (default: current buffer)
         {lnum}  (number|nil) Line number (default: cursor line)
-        {type}  (string) Comment type: ISSUE|NOTE
         {text}  (string) Comment text
 
     Example: >lua
-        require('nit').add(nil, nil, 'ISSUE', 'This needs refactoring')
+        require('nit').add(nil, nil, 'This needs refactoring')
 <
 
 require('nit').delete()                                         *nit.delete()*
@@ -212,24 +209,13 @@ Example: >lua
 <
 
 ==============================================================================
-COMMENT TYPES                                              *nit-comment-types*
-
-nit.nvim supports two comment types, each with distinct visual styling:
-
-ISSUE           Problem that needs to be fixed
-                Highlight: DiagnosticWarn (typically yellow/orange)
-
-NOTE            General observation or reminder
-                Highlight: DiagnosticHint (typically blue)
-
-==============================================================================
 EXPORT FORMAT                                              *nit-export-format*
 
 Comments are exported as markdown optimized for LLM consumption:
 >
     I reviewed your code and have the following comments. Please address them.
 
-    1. **ISSUE**: src/auth.lua
+    1. [nit] src/auth.lua
 
     ```lua src/auth.lua:42
     if attempts > 5 then
@@ -237,7 +223,7 @@ Comments are exported as markdown optimized for LLM consumption:
 
     _Comment_: Magic number should be constant
 
-    2. **NOTE**: src/init.lua
+    2. [nit] src/init.lua
 
     ```lua src/init.lua:8
     local M = {}
@@ -247,7 +233,7 @@ Comments are exported as markdown optimized for LLM consumption:
 <
 
 Each comment includes:
-  • Numbered list with comment type and file path
+  • Numbered list with file path
   • Code block with syntax highlighting and line number
   • Comment text
   • Warning for deleted files (if applicable)

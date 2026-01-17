@@ -2,7 +2,7 @@
 
 A Neovim plugin for leaving review comments in code and exporting them as structured feedback for AI agents.
 
-- Typed comments (ISSUE, NOTE) rendered as virtual text
+- Comments rendered as virtual text with `[nit]` prefix
 - Comments follow line movements automatically via extmarks
 - Export all comments as LLM-optimized markdown in one shot
 - Navigate between comments with `:NitNext` / `:NitPrev`
@@ -45,7 +45,6 @@ Use `:NitAdd` (or your configured keymap) to open the input window:
 |-----|--------|
 | `Esc` (in insert mode) | Switch to normal mode |
 | `Enter` (in normal mode) | Submit comment |
-| `Tab` / `S-Tab` (in normal mode) | Cycle comment type |
 | `Esc` / `q` (in normal mode) | Cancel |
 
 The input window starts in insert mode for easy text entry.
@@ -78,7 +77,7 @@ Exported markdown is optimized for LLM consumption with context included:
 ```markdown
 I reviewed your code and have the following comments. Please address them.
 
-1. **ISSUE**: src/auth.lua
+1. [nit] src/auth.lua
 
 ```lua src/auth.lua:42
 if attempts > 5 then
@@ -86,7 +85,7 @@ if attempts > 5 then
 
 _Comment_: Magic number should be a constant
 
-2. **NOTE**: src/auth.lua
+2. [nit] src/auth.lua
 
 ```lua src/auth.lua:87
 local function process_request()
@@ -96,7 +95,7 @@ _Comment_: This pattern appears in multiple places
 ```
 
 Each comment includes:
-- Numbered list with comment type and file path
+- Numbered list with file path
 - Code block with syntax highlighting and line number
 - Your comment text
 - Warning for deleted files (if applicable)
@@ -118,7 +117,7 @@ local counts = require('nit').count_by_file()
 ## Implementation Notes
 
 - Comments are stored in-memory only (no persistence across sessions)
-- Rendered using extmarks with `virt_lines` and sign column indicators
+- Rendered using extmarks with `virt_lines` as virtual text
 - Line tracking handled automatically by extmark API
 - Only works on normal file buffers (rejects special buffer types)
 - Comments beyond EOF are silently skipped on buffer restore

@@ -6,7 +6,7 @@ A minimal Neovim plugin for annotating code with review comments. Designed for A
 
 ## Core Concept
 
-- Add typed comments (ISSUE, NOTE) to any line in any buffer
+- Add comments with [nit] prefix to any line in any buffer
 - Comments render as virtual text via extmarks (non-destructive)
 - Export all comments as structured markdown optimized for LLM consumption
 - Navigate between comments with ]r / [r
@@ -42,7 +42,7 @@ nit.nvim/
 
 ## Key APIs Used
 
-- `vim.api.nvim_buf_set_extmark()` with `virt_lines`, `sign_text`, `invalidate`
+- `vim.api.nvim_buf_set_extmark()` with `virt_lines`, `invalidate`
 - `vim.api.nvim_buf_get_extmark_by_id()` to read current position
 - `vim.api.nvim_create_autocmd()` with augroup for BufWinEnter
 - `vim.ui.select()` for confirmation dialogs

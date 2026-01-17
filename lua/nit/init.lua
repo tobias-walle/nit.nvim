@@ -1,7 +1,6 @@
 -- lua/nit/init.lua
 
 ---@class NitComment
----@field type string
 ---@field text string
 ---@field extmark_id? integer
 ---@field original_line? string
@@ -33,11 +32,7 @@ local config = {
   notify_wrap = false,
 }
 
-local TYPES = { 'ISSUE', 'NOTE' }
-local HL = {
-  ISSUE = 'DiagnosticWarn',
-  NOTE = 'DiagnosticHint',
-}
+local HL = 'DiagnosticHint'
 
 -- Utilities
 
@@ -178,13 +173,11 @@ local function render(bufnr, lnum, comment)
   local extmark_id = vim.api.nvim_buf_set_extmark(bufnr, ns, lnum - 1, 0, {
     virt_lines = {
       {
-        { '┃ ', HL[comment.type] },
-        { string.format('[%s] %s', comment.type, comment.text), 'Comment' },
+        { '┃ ', HL },
+        { string.format('[nit] %s', comment.text), 'Comment' },
       },
     },
     virt_lines_above = false,
-    sign_text = '●',
-    sign_hl_group = HL[comment.type],
     invalidate = true,
     right_gravity = true,
   })
@@ -339,7 +332,7 @@ local function list_snacks(items)
   local picker_items = vim.tbl_map(function(item)
     local prefix = item.exists and '' or '[DELETED] '
     return {
-      text = string.format('%s[%s] %s', prefix, item.comment.type, item.comment.text),
+      text = string.format('%s[nit] %s', prefix, item.comment.text),
       file = item.file,
       pos = { item.lnum, 0 },
       exists = item.exists,
@@ -381,7 +374,7 @@ local function list_telescope(items)
       entry_maker = function(item)
         local short = vim.fn.fnamemodify(item.file, ':~:.')
         local prefix = item.exists and '' or '[DELETED] '
-        local display = string.format('%s%s:%d [%s] %s', prefix, short, item.lnum, item.comment.type, item.comment.text)
+        local display = string.format('%s%s:%d [nit] %s', prefix, short, item.lnum, item.comment.text)
         return {
           value = item,
           display = display,
@@ -420,8 +413,8 @@ local function list_quickfix(items)
       filename = item.file,
       lnum = item.lnum,
       col = 1,
-      text = string.format('%s[%s] %s', prefix, item.comment.type, item.comment.text),
-      type = item.comment.type:sub(1, 1),
+      text = string.format('%s[nit] %s', prefix, item.comment.text),
+      type = 'N',
       valid = item.exists,
     }
   end, items)
@@ -438,9 +431,8 @@ end
 
 ---@param bufnr? integer
 ---@param lnum? integer
----@param type string
 ---@param text string
-function M.add(bufnr, lnum, type, text)
+function M.add(bufnr, lnum, text)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
   if not is_valid_buf(bufnr) then
     notify('Cannot add comment to this buffer type', vim.log.levels.WARN)
@@ -455,27 +447,12 @@ function M.add(bufnr, lnum, type, text)
 
   lnum = lnum or vim.api.nvim_win_get_cursor(0)[1]
 
-  -- Validate type parameter
-  local valid_type = false
-  for _, t in ipairs(TYPES) do
-    if t == type then
-      valid_type = true
-      break
-    end
-  end
-  if not valid_type then
-    notify(string.format('Invalid comment type: %s (must be one of: %s)',
-      type, table.concat(TYPES, ', ')), vim.log.levels.ERROR)
-    return
-  end
-
   sync_extmark_positions(file)
 
   state.comments[file] = state.comments[file] or {}
 
   ---@type NitComment
   local comment = {
-    type = type,
     text = text,
     extmark_id = nil,
     original_line = vim.trim(get_line_content(bufnr, lnum)),
@@ -615,17 +592,10 @@ function M.input()
     end
   end
 
-  local type_idx = 1
   local prefill = ''
 
   if existing then
     prefill = existing.text
-    for i, t in ipairs(TYPES) do
-      if t == existing.type then
-        type_idx = i
-        break
-      end
-    end
   end
 
   local buf = vim.api.nvim_create_buf(false, true)
@@ -643,9 +613,9 @@ function M.input()
     height = height,
     style = 'minimal',
     border = 'rounded',
-    title = string.format(' [%s] ', TYPES[type_idx]),
+    title = ' [nit] ',
     title_pos = 'center',
-    footer = ' Enter: submit | Tab: cycle type | Esc/q: cancel ',
+    footer = ' Enter: submit | Esc/q: cancel ',
     footer_pos = 'center',
   })
 
@@ -665,14 +635,6 @@ function M.input()
   end
 
   local closed = false
-
-  local function update_title()
-    if vim.api.nvim_win_is_valid(win) then
-      vim.api.nvim_win_set_config(win, {
-        title = string.format(' [%s] ', TYPES[type_idx]),
-      })
-    end
-  end
 
   local function close()
     if closed then return end
@@ -705,22 +667,11 @@ function M.input()
       state.comments[file][existing_lnum] = nil
     end
 
-    M.add(target_buf, target_lnum, TYPES[type_idx], text)
+    M.add(target_buf, target_lnum, text)
     notify(existing and 'Updated comment' or 'Added comment')
   end
 
   local kopts = { buffer = buf, nowait = true }
-
-  -- Cycle comment type
-  vim.keymap.set('n', '<Tab>', function()
-    type_idx = (type_idx % #TYPES) + 1
-    update_title()
-  end, kopts)
-
-  vim.keymap.set('n', '<S-Tab>', function()
-    type_idx = ((type_idx - 2) % #TYPES) + 1
-    update_title()
-  end, kopts)
 
   -- Submit
   vim.keymap.set('n', '<CR>', submit, kopts)
@@ -787,7 +738,7 @@ function M.export()
     local lang = get_language(item.file)
 
     -- Header
-    table.insert(lines, string.format('%d. **%s**: %s', i, item.comment.type, filepath))
+    table.insert(lines, string.format('%d. [nit] %s', i, filepath))
     table.insert(lines, '')
 
     -- Code block with context
