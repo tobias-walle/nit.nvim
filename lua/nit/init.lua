@@ -341,18 +341,22 @@ local function list_snacks(items)
 
   snacks.picker({
     items = picker_items,
-    format = function(picker_item)
-      local short = vim.fn.fnamemodify(picker_item.file, ':~:.')
-      return string.format('%s:%d %s', short, picker_item.pos[1], picker_item.text)
+    format = function(item)
+      if not item then return {} end
+      local short = vim.fn.fnamemodify(item.file, ':~:.')
+      local formatted = string.format('%s:%d %s', short, item.pos[1], item.text)
+      return { { formatted } }
     end,
     actions = {
-      confirm = function(picker, picker_item)
+      confirm = function(picker)
+        local item = picker:current()
+        if not item then return end
         picker:close()
-        if picker_item.exists then
-          vim.cmd('edit ' .. vim.fn.fnameescape(picker_item.file))
-          vim.api.nvim_win_set_cursor(0, picker_item.pos)
+        if item.exists then
+          vim.cmd('edit ' .. vim.fn.fnameescape(item.file))
+          vim.api.nvim_win_set_cursor(0, item.pos)
         else
-          notify('File no longer exists: ' .. picker_item.file, vim.log.levels.WARN)
+          notify('File no longer exists: ' .. item.file, vim.log.levels.WARN)
         end
       end,
     },
