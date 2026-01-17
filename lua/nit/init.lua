@@ -668,6 +668,9 @@ function M.input()
     end
 
     if existing and existing_lnum then
+      if existing.extmark_id then
+        pcall(vim.api.nvim_buf_del_extmark, target_buf, ns, existing.extmark_id)
+      end
       state.comments[file][existing_lnum] = nil
     end
 
