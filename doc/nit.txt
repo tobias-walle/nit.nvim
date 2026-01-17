@@ -1,0 +1,260 @@
+*nit.txt*    Leave review comments in code and export for AI agents
+
+==============================================================================
+CONTENTS                                                        *nit-contents*
+
+    1. Introduction ................................. |nit-introduction|
+    2. Installation ................................. |nit-installation|
+    3. Commands ..................................... |nit-commands|
+    4. API .......................................... |nit-api|
+    5. Configuration ................................ |nit-configuration|
+    6. Comment Types ................................ |nit-comment-types|
+    7. Export Format ................................ |nit-export-format|
+
+==============================================================================
+INTRODUCTION                                                *nit-introduction*
+
+nit.nvim is a Neovim plugin for leaving typed review comments in code and
+exporting them as structured feedback for AI agents.
+
+Features:~
+  • Typed comments (NOTE, SUGGESTION, ISSUE, PRAISE)
+  • Comments follow line movements via extmarks
+  • Export all comments as LLM-optimized markdown
+  • Navigate between comments
+  • Works with Snacks, Telescope, or quickfix pickers
+
+Workflow:~
+  1. AI makes changes → open in diffview or similar
+  2. Navigate code, press keybind to add comments
+  3. Export to clipboard
+  4. Paste into Claude/Cursor/etc → AI addresses all feedback in one pass
+  5. Clear comments and repeat
+
+==============================================================================
+INSTALLATION                                                *nit-installation*
+
+Using lazy.nvim: >lua
+    {
+      'yourusername/nit.nvim',
+      config = function()
+        require('nit').setup()
+      end,
+      keys = {
+        { '<leader>nc', '<cmd>NitAdd<cr>', desc = 'Add/edit comment' },
+        { '<leader>nd', '<cmd>NitDelete<cr>', desc = 'Delete comment' },
+        { '<leader>nl', '<cmd>NitList<cr>', desc = 'List comments' },
+        { '<leader>ne', '<cmd>NitExport<cr>', desc = 'Export to clipboard' },
+        { '<leader>nx', '<cmd>NitClear<cr>', desc = 'Clear all comments' },
+        { ']r', '<cmd>NitNext<cr>', desc = 'Next comment' },
+        { '[r', '<cmd>NitPrev<cr>', desc = 'Previous comment' },
+      },
+    }
+<
+
+==============================================================================
+COMMANDS                                                        *nit-commands*
+
+:NitAdd                                                             *:NitAdd*
+    Open input window to add or edit a comment at the cursor position.
+
+    In the input window:
+      - Tab/Shift-Tab: Cycle through comment types
+      - Shift-Enter or Ctrl-s: Submit comment
+      - Esc or q: Cancel
+      - Empty submit: Delete existing comment
+
+:NitDelete                                                       *:NitDelete*
+    Delete the comment at the cursor position.
+
+:NitList                                                           *:NitList*
+    Open a picker to list and navigate all comments. The picker used depends
+    on your configuration and available plugins (Snacks, Telescope, or
+    quickfix).
+
+:NitExport                                                       *:NitExport*
+    Export all comments to clipboard as markdown. The export format is
+    optimized for LLM consumption. See |nit-export-format|.
+
+:NitClear                                                         *:NitClear*
+    Clear all comments. By default, shows a confirmation prompt (can be
+    disabled in configuration).
+
+:NitNext                                                           *:NitNext*
+    Navigate to the next comment in the current file. Wraps to the first
+    comment if at the end.
+
+:NitPrev                                                           *:NitPrev*
+    Navigate to the previous comment in the current file. Wraps to the last
+    comment if at the beginning.
+
+==============================================================================
+API                                                                  *nit-api*
+
+require('nit').setup({opts})                                    *nit.setup()*
+    Initialize the plugin with optional configuration.
+
+    Parameters: ~
+        {opts} (table|nil) Configuration options. See |nit-configuration|.
+
+    Example: >lua
+        require('nit').setup({
+          picker = 'telescope',
+          confirm_clear = true,
+          notify_wrap = false,
+        })
+<
+
+require('nit').add({bufnr}, {lnum}, {type}, {text})               *nit.add()*
+    Add a comment programmatically.
+
+    Parameters: ~
+        {bufnr} (number|nil) Buffer number (default: current buffer)
+        {lnum}  (number|nil) Line number (default: cursor line)
+        {type}  (string) Comment type: NOTE|SUGGESTION|ISSUE|PRAISE
+        {text}  (string) Comment text
+
+    Example: >lua
+        require('nit').add(nil, nil, 'ISSUE', 'This needs refactoring')
+<
+
+require('nit').delete()                                         *nit.delete()*
+    Delete the comment at the cursor position.
+
+require('nit').get_comments({file})                      *nit.get_comments()*
+    Get all comments for a file or all files.
+
+    Parameters: ~
+        {file} (string|nil) File path (default: all files)
+
+    Returns: ~
+        (table) Deep copy of comments data structure
+
+    Example: >lua
+        -- Get all comments
+        local all = require('nit').get_comments()
+
+        -- Get comments for specific file
+        local file_comments = require('nit').get_comments('/path/to/file.lua')
+<
+
+require('nit').input()                                           *nit.input()*
+    Open the interactive input window to add or edit a comment at the
+    cursor position. This is the same as |:NitAdd|.
+
+require('nit').list()                                             *nit.list()*
+    Open a picker to list and navigate all comments. This is the same as
+    |:NitList|.
+
+require('nit').export()                                         *nit.export()*
+    Export all comments to clipboard. This is the same as |:NitExport|.
+
+require('nit').clear()                                           *nit.clear()*
+    Clear all comments. This is the same as |:NitClear|.
+
+require('nit').next()                                             *nit.next()*
+    Navigate to the next comment. This is the same as |:NitNext|.
+
+require('nit').prev()                                             *nit.prev()*
+    Navigate to the previous comment. This is the same as |:NitPrev|.
+
+require('nit').count()                                           *nit.count()*
+    Get total number of comments across all files.
+
+    Returns: ~
+        (number) Total comment count
+
+    Example: >lua
+        local total = require('nit').count()
+        print('Total comments: ' .. total)
+<
+
+require('nit').count_by_file()                           *nit.count_by_file()*
+    Get comment counts per file.
+
+    Returns: ~
+        (table<string,number>) Map of file paths to comment counts
+
+    Example: >lua
+        local counts = require('nit').count_by_file()
+        for file, count in pairs(counts) do
+          print(file .. ': ' .. count)
+        end
+<
+
+==============================================================================
+CONFIGURATION                                              *nit-configuration*
+
+Pass a table to |nit.setup()| with these optional fields:
+
+    picker          string    Picker to use: 'snacks'|'telescope'|
+                              'quickfix'|'auto' (default: 'auto')
+
+                              When set to 'auto', nit.nvim will detect
+                              available pickers in this order:
+                              1. Snacks (snacks.nvim)
+                              2. Telescope (telescope.nvim)
+                              3. Quickfix (built-in)
+
+    confirm_clear   boolean   Confirm before clearing all comments
+                              (default: true)
+
+    notify_wrap     boolean   Show notification when navigation wraps around
+                              (default: false)
+
+Example: >lua
+    require('nit').setup({
+      picker = 'telescope',
+      confirm_clear = true,
+      notify_wrap = false,
+    })
+<
+
+==============================================================================
+COMMENT TYPES                                              *nit-comment-types*
+
+nit.nvim supports four comment types, each with distinct visual styling:
+
+NOTE            General observation or reminder
+                Highlight: DiagnosticHint (typically blue)
+
+SUGGESTION      Proposed improvement or alternative approach
+                Highlight: DiagnosticInfo (typically cyan)
+
+ISSUE           Problem that needs to be fixed
+                Highlight: DiagnosticWarn (typically yellow/orange)
+
+PRAISE          Positive feedback or good practice
+                Highlight: DiagnosticOk (typically green)
+
+==============================================================================
+EXPORT FORMAT                                              *nit-export-format*
+
+Comments are exported as markdown optimized for LLM consumption:
+>
+    I reviewed your code and have the following comments. Please address them.
+
+    Comment types: ISSUE (problems to fix), SUGGESTION (improvements),
+                   NOTE (observations), PRAISE (positive feedback)
+
+    1. **[ISSUE]** `src/auth.lua:42` - Magic number should be constant
+       > `if attempts > 5 then`
+
+    2. **[SUGGESTION]** `src/utils.lua:15` - Consider using table.concat
+       > `local result = ''`
+
+    3. **[NOTE]** `src/init.lua:8` - This pattern is used throughout
+       > `local M = {}`
+<
+
+Each comment includes:
+  • Sequential number
+  • Comment type in brackets
+  • File path and line number
+  • Comment text
+  • Original line context (if available)
+
+Deleted files are marked with [DELETED FILE] prefix.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:

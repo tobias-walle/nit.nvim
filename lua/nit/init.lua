@@ -13,11 +13,12 @@
 ---@class NitOpts
 ---@field picker? 'snacks'|'telescope'|'quickfix'|'auto'
 ---@field confirm_clear? boolean
+---@field notify_wrap? boolean
 
 local M = {}
 
 local ns = vim.api.nvim_create_namespace('nit')
-local augroup = vim.api.nvim_create_augroup('nit', { clear = true })
+local augroup = nil
 
 ---@type NitState
 local state = {
@@ -29,6 +30,7 @@ local state = {
 local config = {
   picker = 'auto',
   confirm_clear = true,
+  notify_wrap = false,
 }
 
 local TYPES = { 'NOTE', 'SUGGESTION', 'ISSUE', 'PRAISE' }
@@ -55,7 +57,16 @@ end
 ---@return string
 local function normalize_path(file)
   if file == '' then return '' end
-  return vim.fn.fnamemodify(file, ':p')
+  local absolute = vim.fn.fnamemodify(file, ':p')
+
+  -- Try to resolve symlinks
+  local realpath = vim.loop.fs_realpath(absolute)
+  if realpath then
+    return realpath
+  end
+
+  -- Fallback to absolute path if realpath fails (file doesn't exist yet)
+  return absolute
 end
 
 ---@param msg string
@@ -243,6 +254,8 @@ local function sync_extmark_positions(file)
   if not bufnr then return end
 
   local updated = {}
+  local collisions = {}
+
   for stored_lnum, comment in pairs(comments) do
     local lnum = stored_lnum
 
@@ -253,7 +266,24 @@ local function sync_extmark_positions(file)
       end
     end
 
-    updated[lnum] = comment
+    if updated[lnum] then
+      -- Collision detected
+      collisions[lnum] = collisions[lnum] or { updated[lnum] }
+      table.insert(collisions[lnum], comment)
+    else
+      updated[lnum] = comment
+    end
+  end
+
+  -- Resolve collisions by offsetting to next available line
+  for lnum, coll_comments in pairs(collisions) do
+    for i, comment in ipairs(coll_comments) do
+      local offset_lnum = lnum + i - 1
+      while updated[offset_lnum] do
+        offset_lnum = offset_lnum + 1
+      end
+      updated[offset_lnum] = comment
+    end
   end
 
   state.comments[file] = updated
@@ -382,6 +412,20 @@ function M.add(bufnr, lnum, type, text)
 
   lnum = lnum or vim.api.nvim_win_get_cursor(0)[1]
 
+  -- Validate type parameter
+  local valid_type = false
+  for _, t in ipairs(TYPES) do
+    if t == type then
+      valid_type = true
+      break
+    end
+  end
+  if not valid_type then
+    notify(string.format('Invalid comment type: %s (must be one of: %s)',
+      type, table.concat(TYPES, ', ')), vim.log.levels.ERROR)
+    return
+  end
+
   sync_extmark_positions(file)
 
   state.comments[file] = state.comments[file] or {}
@@ -464,7 +508,9 @@ function M.next()
 
   vim.api.nvim_win_set_cursor(0, { sorted[1].lnum, 0 })
   vim.cmd('normal! zz')
-  notify('Wrapped to first comment')
+  if config.notify_wrap then
+    notify('Wrapped to first comment')
+  end
 end
 
 function M.prev()
@@ -487,7 +533,9 @@ function M.prev()
 
   vim.api.nvim_win_set_cursor(0, { sorted[#sorted].lnum, 0 })
   vim.cmd('normal! zz')
-  notify('Wrapped to last comment')
+  if config.notify_wrap then
+    notify('Wrapped to last comment')
+  end
 end
 
 function M.input()
@@ -714,8 +762,29 @@ function M.export()
     ))
   end
 
-  vim.fn.setreg('+', table.concat(lines, '\n'))
-  notify(string.format('Exported %d comments to clipboard', #items))
+  local export_text = table.concat(lines, '\n')
+
+  -- Try clipboard registers in order of preference
+  local success = false
+  local registers = { '+', '*', '"' }  -- system clipboard, selection, unnamed
+
+  for _, reg in ipairs(registers) do
+    local ok = pcall(vim.fn.setreg, reg, export_text)
+    if ok then
+      success = true
+      if reg == '+' or reg == '*' then
+        notify(string.format('Exported %d comments to system clipboard', #items))
+      else
+        notify(string.format('Exported %d comments to register "%s" (clipboard unavailable)', #items, reg))
+      end
+      break
+    end
+  end
+
+  if not success then
+    notify('Failed to export: clipboard unavailable. Install +clipboard support or xclip/xsel',
+      vim.log.levels.ERROR)
+  end
 end
 
 function M.clear()
@@ -751,6 +820,18 @@ function M.clear()
   end
 end
 
+---Get all comments for a file or all files
+---@param file? string Optional file path (normalized). If nil, returns all comments.
+---@return table<string, table<integer, NitComment>>
+function M.get_comments(file)
+  if file then
+    local normalized = normalize_path(file)
+    return vim.deepcopy(state.comments[normalized] or {})
+  else
+    return vim.deepcopy(state.comments)
+  end
+end
+
 ---@return integer
 function M.count()
   local count = 0
@@ -781,9 +862,13 @@ function M.setup(opts)
     opts = { opts, 'table' },
     picker = { opts.picker, 'string', true },
     confirm_clear = { opts.confirm_clear, 'boolean', true },
+    notify_wrap = { opts.notify_wrap, 'boolean', true },
   })
 
   config = vim.tbl_deep_extend('force', config, opts)
+
+  -- Create augroup
+  augroup = vim.api.nvim_create_augroup('nit', { clear = true })
 
   vim.api.nvim_create_autocmd('BufWinEnter', {
     group = augroup,

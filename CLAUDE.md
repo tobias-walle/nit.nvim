@@ -32,7 +32,10 @@ A minimal Neovim plugin for annotating code with review comments. Designed for A
 ```
 nit.nvim/
 ├── lua/nit/
-│   └── init.lua    # Everything in one file, ~400 lines
+│   ├── init.lua    # Main implementation, ~850 lines
+│   └── health.lua  # Healthcheck implementation
+├── doc/
+│   └── nit.txt     # Vim help documentation
 ├── README.md
 └── CLAUDE.md       # This file
 ```
