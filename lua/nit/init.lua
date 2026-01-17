@@ -102,6 +102,46 @@ local function file_exists(file)
   return vim.fn.filereadable(file) == 1
 end
 
+---@param filepath string
+---@return string
+local function get_language(filepath)
+  local ext = vim.fn.fnamemodify(filepath, ':e')
+  local lang_map = {
+    lua = 'lua',
+    py = 'python',
+    js = 'javascript',
+    ts = 'typescript',
+    jsx = 'javascript',
+    tsx = 'typescript',
+    md = 'markdown',
+    sh = 'bash',
+    bash = 'bash',
+    vim = 'vim',
+    c = 'c',
+    cpp = 'cpp',
+    h = 'c',
+    hpp = 'cpp',
+    rs = 'rust',
+    go = 'go',
+    rb = 'ruby',
+    java = 'java',
+    kt = 'kotlin',
+    swift = 'swift',
+    cs = 'csharp',
+    php = 'php',
+    html = 'html',
+    css = 'css',
+    scss = 'scss',
+    json = 'json',
+    yaml = 'yaml',
+    yml = 'yaml',
+    toml = 'toml',
+    xml = 'xml',
+    sql = 'sql',
+  }
+  return lang_map[ext] or ''
+end
+
 ---@param bufnr integer
 ---@param extmark_id integer
 ---@return integer? lnum 1-indexed line number or nil if not found
@@ -137,13 +177,16 @@ local function render(bufnr, lnum, comment)
 
   local extmark_id = vim.api.nvim_buf_set_extmark(bufnr, ns, lnum - 1, 0, {
     virt_lines = {
-      { { string.format('  💬 [%s] %s', comment.type, comment.text), HL[comment.type] } },
+      {
+        { '┃ ', HL[comment.type] },
+        { string.format('[%s] %s', comment.type, comment.text), 'Comment' },
+      },
     },
-    virt_lines_above = true,
+    virt_lines_above = false,
     sign_text = '●',
     sign_hl_group = HL[comment.type],
     invalidate = true,
-    right_gravity = false,
+    right_gravity = true,
   })
 
   return extmark_id
@@ -309,15 +352,17 @@ local function list_snacks(items)
       local short = vim.fn.fnamemodify(picker_item.file, ':~:.')
       return string.format('%s:%d %s', short, picker_item.pos[1], picker_item.text)
     end,
-    confirm = function(picker, picker_item)
-      picker:close()
-      if picker_item.exists then
-        vim.cmd('edit ' .. vim.fn.fnameescape(picker_item.file))
-        vim.api.nvim_win_set_cursor(0, picker_item.pos)
-      else
-        notify('File no longer exists: ' .. picker_item.file, vim.log.levels.WARN)
-      end
-    end,
+    actions = {
+      confirm = function(picker, picker_item)
+        picker:close()
+        if picker_item.exists then
+          vim.cmd('edit ' .. vim.fn.fnameescape(picker_item.file))
+          vim.api.nvim_win_set_cursor(0, picker_item.pos)
+        else
+          notify('File no longer exists: ' .. picker_item.file, vim.log.levels.WARN)
+        end
+      end,
+    },
   })
 end
 
@@ -600,7 +645,7 @@ function M.input()
     border = 'rounded',
     title = string.format(' [%s] ', TYPES[type_idx]),
     title_pos = 'center',
-    footer = ' S-Enter/C-s: submit | Tab: cycle type ',
+    footer = ' Enter: submit | Tab: cycle type | Esc/q: cancel ',
     footer_pos = 'center',
   })
 
@@ -635,6 +680,7 @@ function M.input()
     if vim.api.nvim_win_is_valid(win) then
       vim.api.nvim_win_close(win, true)
     end
+    vim.cmd('stopinsert')
   end
 
   local function submit()
@@ -665,23 +711,22 @@ function M.input()
 
   local kopts = { buffer = buf, nowait = true }
 
-  vim.keymap.set('i', '<Tab>', function()
+  -- Cycle comment type
+  vim.keymap.set('n', '<Tab>', function()
     type_idx = (type_idx % #TYPES) + 1
     update_title()
   end, kopts)
 
-  vim.keymap.set('i', '<S-Tab>', function()
+  vim.keymap.set('n', '<S-Tab>', function()
     type_idx = ((type_idx - 2) % #TYPES) + 1
     update_title()
   end, kopts)
 
-  -- Submit: S-Enter (modern terminals) or C-s (fallback)
-  vim.keymap.set('i', '<S-CR>', submit, kopts)
-  vim.keymap.set('i', '<C-s>', submit, kopts)
+  -- Submit
   vim.keymap.set('n', '<CR>', submit, kopts)
 
   -- Cancel
-  vim.keymap.set({ 'i', 'n' }, '<Esc>', close, kopts)
+  vim.keymap.set('n', '<Esc>', close, kopts)
   vim.keymap.set('n', 'q', close, kopts)
 
   vim.api.nvim_create_autocmd('WinLeave', {
@@ -735,29 +780,34 @@ function M.export()
   local lines = {
     'I reviewed your code and have the following comments. Please address them.',
     '',
-    'Comment types: ISSUE (problems to fix), NOTE (observations)',
-    '',
   }
 
   for i, item in ipairs(items) do
-    local short = vim.fn.fnamemodify(item.file, ':~:.')
-    local prefix = item.exists and '' or '[DELETED FILE] '
+    local filepath = vim.fn.fnamemodify(item.file, ':~:.')
+    local lang = get_language(item.file)
 
-    local context = ''
+    -- Header
+    table.insert(lines, string.format('%d. **%s**: %s', i, item.comment.type, filepath))
+    table.insert(lines, '')
+
+    -- Code block with context
     if item.comment.original_line and item.comment.original_line ~= '' then
-      local orig = item.comment.original_line
-      if #orig > 60 then
-        orig = orig:sub(1, 57) .. '...'
-      end
-      context = string.format('\n   > `%s`', orig)
+      table.insert(lines, string.format('```%s %s:%d', lang, filepath, item.lnum))
+      table.insert(lines, item.comment.original_line)
+      table.insert(lines, '```')
+      table.insert(lines, '')
     end
 
-    local text = item.comment.text:gsub('\n', '\n   ')
+    -- Comment
+    table.insert(lines, string.format('_Comment_: %s', item.comment.text))
 
-    table.insert(lines, string.format(
-      '%d. %s**[%s]** `%s:%d` - %s%s',
-      i, prefix, item.comment.type, short, item.lnum, text, context
-    ))
+    -- Deleted file warning
+    if not item.exists then
+      table.insert(lines, '')
+      table.insert(lines, '⚠️  _Warning: File has been deleted_')
+    end
+
+    table.insert(lines, '')
   end
 
   local export_text = table.concat(lines, '\n')

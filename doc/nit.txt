@@ -41,13 +41,13 @@ Using lazy.nvim: >lua
         require('nit').setup()
       end,
       keys = {
-        { '<leader>nc', '<cmd>NitAdd<cr>', desc = 'Add/edit comment' },
-        { '<leader>nd', '<cmd>NitDelete<cr>', desc = 'Delete comment' },
-        { '<leader>nl', '<cmd>NitList<cr>', desc = 'List comments' },
-        { '<leader>ne', '<cmd>NitExport<cr>', desc = 'Export to clipboard' },
-        { '<leader>nx', '<cmd>NitClear<cr>', desc = 'Clear all comments' },
-        { ']r', '<cmd>NitNext<cr>', desc = 'Next comment' },
-        { '[r', '<cmd>NitPrev<cr>', desc = 'Previous comment' },
+        { '<leader>na', '<cmd>NitAdd<cr>', desc = '[nit] Add/edit' },
+        { '<leader>nd', '<cmd>NitDelete<cr>', desc = '[nit] Delete' },
+        { '<leader>nl', '<cmd>NitList<cr>', desc = '[nit] List' },
+        { '<leader>ne', '<cmd>NitExport<cr>', desc = '[nit] Export' },
+        { '<leader>nx', '<cmd>NitClear<cr>', desc = '[nit] Clear all' },
+        { ']n', '<cmd>NitNext<cr>', desc = '[nit] Next' },
+        { '[n', '<cmd>NitPrev<cr>', desc = '[nit] Prev' },
       },
     }
 <
@@ -58,10 +58,11 @@ COMMANDS                                                        *nit-commands*
 :NitAdd                                                             *:NitAdd*
     Open input window to add or edit a comment at the cursor position.
 
-    In the input window:
-      - Tab/Shift-Tab: Cycle through comment types
-      - Shift-Enter or Ctrl-s: Submit comment
-      - Esc or q: Cancel
+    In the input window (starts in insert mode):
+      - Esc (insert mode): Switch to normal mode
+      - Enter (normal mode): Submit comment
+      - Tab/Shift-Tab (normal mode): Cycle through comment types
+      - Esc or q (normal mode): Cancel
       - Empty submit: Delete existing comment
 
 :NitDelete                                                       *:NitDelete*
@@ -228,23 +229,28 @@ Comments are exported as markdown optimized for LLM consumption:
 >
     I reviewed your code and have the following comments. Please address them.
 
-    Comment types: ISSUE (problems to fix), NOTE (observations)
+    1. **ISSUE**: src/auth.lua
 
-    1. **[ISSUE]** `src/auth.lua:42` - Magic number should be constant
-       > `if attempts > 5 then`
+    ```lua src/auth.lua:42
+    if attempts > 5 then
+    ```
 
-    2. **[NOTE]** `src/init.lua:8` - This pattern is used throughout
-       > `local M = {}`
+    _Comment_: Magic number should be constant
+
+    2. **NOTE**: src/init.lua
+
+    ```lua src/init.lua:8
+    local M = {}
+    ```
+
+    _Comment_: This pattern is used throughout
 <
 
 Each comment includes:
-  • Sequential number
-  • Comment type in brackets
-  • File path and line number
+  • Numbered list with comment type and file path
+  • Code block with syntax highlighting and line number
   • Comment text
-  • Original line context (if available)
-
-Deleted files are marked with [DELETED FILE] prefix.
+  • Warning for deleted files (if applicable)
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

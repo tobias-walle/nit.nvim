@@ -26,13 +26,13 @@ A Neovim plugin for leaving review comments in code and exporting them as struct
     require('nit').setup()
   end,
   keys = {
-    { '<leader>nc', function() require('nit').input() end, desc = 'Add/edit nit' },
-    { '<leader>nd', function() require('nit').delete() end, desc = 'Delete nit' },
-    { '<leader>nl', function() require('nit').list() end, desc = 'List nits' },
-    { '<leader>ne', function() require('nit').export() end, desc = 'Export nits' },
-    { '<leader>nx', function() require('nit').clear() end, desc = 'Clear all nits' },
-    { ']r', function() require('nit').next() end, desc = 'Next nit' },
-    { '[r', function() require('nit').prev() end, desc = 'Prev nit' },
+    { '<leader>na', function() require('nit').input() end, desc = '[nit] Add/edit' },
+    { '<leader>nd', function() require('nit').delete() end, desc = '[nit] Delete' },
+    { '<leader>nl', function() require('nit').list() end, desc = '[nit] List' },
+    { '<leader>ne', function() require('nit').export() end, desc = '[nit] Export' },
+    { '<leader>nx', function() require('nit').clear() end, desc = '[nit] Clear all' },
+    { ']n', function() require('nit').next() end, desc = '[nit] Next' },
+    { '[n', function() require('nit').prev() end, desc = '[nit] Prev' },
   },
 }
 ```
@@ -43,11 +43,12 @@ Use `:NitAdd` (or your configured keymap) to open the input window:
 
 | Key | Action |
 |-----|--------|
-| `Enter` | New line |
-| `S-Enter` / `C-s` | Submit comment |
-| `Tab` / `S-Tab` | Cycle comment type |
-| `Esc` / `q` | Cancel |
+| `Esc` (in insert mode) | Switch to normal mode |
+| `Enter` (in normal mode) | Submit comment |
+| `Tab` / `S-Tab` (in normal mode) | Cycle comment type |
+| `Esc` / `q` (in normal mode) | Cancel |
 
+The input window starts in insert mode for easy text entry.
 Submit empty text on an existing comment to delete it.
 
 ## Configuration
@@ -77,18 +78,28 @@ Exported markdown is optimized for LLM consumption with context included:
 ```markdown
 I reviewed your code and have the following comments. Please address them.
 
-Comment types: ISSUE (problems to fix), NOTE (observations)
+1. **ISSUE**: src/auth.lua
 
-1. **[ISSUE]** `src/auth.lua:42` - Magic number should be a constant
-   > `if attempts > 5 then`
-2. **[NOTE]** `src/auth.lua:87` - This pattern appears in multiple places
+```lua src/auth.lua:42
+if attempts > 5 then
+```
+
+_Comment_: Magic number should be a constant
+
+2. **NOTE**: src/auth.lua
+
+```lua src/auth.lua:87
+local function process_request()
+```
+
+_Comment_: This pattern appears in multiple places
 ```
 
 Each comment includes:
-- Type (ISSUE, NOTE)
-- File path and line number
+- Numbered list with comment type and file path
+- Code block with syntax highlighting and line number
 - Your comment text
-- Original line context (truncated to 60 chars)
+- Warning for deleted files (if applicable)
 
 ## Statusline Integration
 
@@ -119,7 +130,8 @@ To work on nit.nvim locally, replace the GitHub URL with a local path in your la
 
 ```lua
 {
-  dir = '~/Projects/nit.nvim',  -- Instead of 'tobias-walle/nit.nvim'
+  'tobias-walle/nit.nvim',
+  dir = '~/Projects/nit.nvim',  -- Replace with checked folder
   -- ... rest of config stays the same
 }
 ```
