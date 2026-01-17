@@ -9,13 +9,13 @@ A minimal Neovim plugin for annotating code with review comments. Designed for A
 - Add comments with [nit] prefix to any line in any buffer
 - Comments render as virtual text via extmarks (non-destructive)
 - Export all comments as structured markdown optimized for LLM consumption
-- Navigate between comments with ]r / [r
+- Navigate between comments with configured keymaps (e.g., `]n` / `[n`)
 
 ## Workflow
 
 1. AI makes changes → open in diffview or similar
-2. Navigate code, press `<leader>nc` to add comments
-3. `<leader>ne` exports to clipboard
+2. Navigate code, add comments via `:NitAdd` or keymap
+3. `:NitExport` exports to clipboard
 4. Paste into Claude/Cursor/etc → AI addresses all feedback in one pass
 5. `:NitClear` and repeat
 

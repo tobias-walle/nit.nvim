@@ -25,11 +25,13 @@ function M.check()
   end
 
   -- Check picker availability
-  local has_snacks = pcall(require, 'snacks')
+  local has_snacks, snacks = pcall(require, 'snacks')
   local has_telescope = pcall(require, 'telescope')
 
-  if has_snacks then
-    vim.health.ok('snacks.nvim available')
+  if has_snacks and snacks.picker then
+    vim.health.ok('snacks.nvim with picker available')
+  elseif has_snacks then
+    vim.health.warn('snacks.nvim installed but picker not available')
   else
     vim.health.info('snacks.nvim not installed (optional)')
   end

@@ -53,7 +53,7 @@ local function normalize_path(file)
   local absolute = vim.fn.fnamemodify(file, ':p')
 
   -- Try to resolve symlinks
-  local realpath = vim.loop.fs_realpath(absolute)
+  local realpath = vim.uv.fs_realpath(absolute)
   if realpath then
     return realpath
   end
@@ -151,10 +151,9 @@ end
 ---@param file string
 ---@return integer? bufnr
 local function get_bufnr_for_file(file)
-  for _, bufinfo in ipairs(vim.fn.getbufinfo({ bufloaded = 1 })) do
-    if normalize_path(bufinfo.name) == file then
-      return bufinfo.bufnr
-    end
+  local bufnr = vim.fn.bufnr(file)
+  if bufnr ~= -1 and vim.api.nvim_buf_is_loaded(bufnr) then
+    return bufnr
   end
   return nil
 end
@@ -682,6 +681,7 @@ function M.input()
 
   -- Submit
   vim.keymap.set('n', '<CR>', submit, kopts)
+  vim.keymap.set('i', '<C-CR>', submit, kopts)
 
   -- Cancel
   vim.keymap.set('n', '<Esc>', close, kopts)

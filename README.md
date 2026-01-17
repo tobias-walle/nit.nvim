@@ -45,6 +45,7 @@ Use `:NitAdd` (or your configured keymap) to open the input window:
 |-----|--------|
 | `Esc` (in insert mode) | Switch to normal mode |
 | `Enter` (in normal mode) | Submit comment |
+| `Ctrl+Enter` (in insert mode) | Submit comment |
 | `Esc` / `q` (in normal mode) | Cancel |
 
 The input window starts in insert mode for easy text entry.
@@ -58,6 +59,7 @@ All options are optional.
 require('nit').setup({
   picker = 'auto',       -- 'snacks' | 'telescope' | 'quickfix' | 'auto'
   confirm_clear = true,  -- Ask before clearing all comments
+  notify_wrap = false,   -- Notify when navigation wraps around
 })
 ```
 
