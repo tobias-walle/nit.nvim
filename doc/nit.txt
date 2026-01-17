@@ -18,7 +18,7 @@ nit.nvim is a Neovim plugin for leaving typed review comments in code and
 exporting them as structured feedback for AI agents.
 
 Features:~
-  • Typed comments (NOTE, SUGGESTION, ISSUE, PRAISE)
+  • Typed comments (ISSUE, NOTE)
   • Comments follow line movements via extmarks
   • Export all comments as LLM-optimized markdown
   • Navigate between comments
@@ -111,7 +111,7 @@ require('nit').add({bufnr}, {lnum}, {type}, {text})               *nit.add()*
     Parameters: ~
         {bufnr} (number|nil) Buffer number (default: current buffer)
         {lnum}  (number|nil) Line number (default: cursor line)
-        {type}  (string) Comment type: NOTE|SUGGESTION|ISSUE|PRAISE
+        {type}  (string) Comment type: ISSUE|NOTE
         {text}  (string) Comment text
 
     Example: >lua
@@ -213,19 +213,13 @@ Example: >lua
 ==============================================================================
 COMMENT TYPES                                              *nit-comment-types*
 
-nit.nvim supports four comment types, each with distinct visual styling:
-
-NOTE            General observation or reminder
-                Highlight: DiagnosticHint (typically blue)
-
-SUGGESTION      Proposed improvement or alternative approach
-                Highlight: DiagnosticInfo (typically cyan)
+nit.nvim supports two comment types, each with distinct visual styling:
 
 ISSUE           Problem that needs to be fixed
                 Highlight: DiagnosticWarn (typically yellow/orange)
 
-PRAISE          Positive feedback or good practice
-                Highlight: DiagnosticOk (typically green)
+NOTE            General observation or reminder
+                Highlight: DiagnosticHint (typically blue)
 
 ==============================================================================
 EXPORT FORMAT                                              *nit-export-format*
@@ -234,16 +228,12 @@ Comments are exported as markdown optimized for LLM consumption:
 >
     I reviewed your code and have the following comments. Please address them.
 
-    Comment types: ISSUE (problems to fix), SUGGESTION (improvements),
-                   NOTE (observations), PRAISE (positive feedback)
+    Comment types: ISSUE (problems to fix), NOTE (observations)
 
     1. **[ISSUE]** `src/auth.lua:42` - Magic number should be constant
        > `if attempts > 5 then`
 
-    2. **[SUGGESTION]** `src/utils.lua:15` - Consider using table.concat
-       > `local result = ''`
-
-    3. **[NOTE]** `src/init.lua:8` - This pattern is used throughout
+    2. **[NOTE]** `src/init.lua:8` - This pattern is used throughout
        > `local M = {}`
 <
 

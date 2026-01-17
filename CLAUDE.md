@@ -6,7 +6,7 @@ A minimal Neovim plugin for annotating code with review comments. Designed for A
 
 ## Core Concept
 
-- Add typed comments (NOTE, SUGGESTION, ISSUE, PRAISE) to any line in any buffer
+- Add typed comments (ISSUE, NOTE) to any line in any buffer
 - Comments render as virtual text via extmarks (non-destructive)
 - Export all comments as structured markdown optimized for LLM consumption
 - Navigate between comments with ]r / [r

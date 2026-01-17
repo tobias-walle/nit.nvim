@@ -33,12 +33,10 @@ local config = {
   notify_wrap = false,
 }
 
-local TYPES = { 'NOTE', 'SUGGESTION', 'ISSUE', 'PRAISE' }
+local TYPES = { 'ISSUE', 'NOTE' }
 local HL = {
-  NOTE = 'DiagnosticHint',
-  SUGGESTION = 'DiagnosticInfo',
   ISSUE = 'DiagnosticWarn',
-  PRAISE = 'DiagnosticOk',
+  NOTE = 'DiagnosticHint',
 }
 
 -- Utilities
@@ -737,7 +735,7 @@ function M.export()
   local lines = {
     'I reviewed your code and have the following comments. Please address them.',
     '',
-    'Comment types: ISSUE (problems to fix), SUGGESTION (improvements), NOTE (observations), PRAISE (positive feedback)',
+    'Comment types: ISSUE (problems to fix), NOTE (observations)',
     '',
   }
 

@@ -2,7 +2,7 @@
 
 A Neovim plugin for leaving review comments in code and exporting them as structured feedback for AI agents.
 
-- Typed comments (NOTE, SUGGESTION, ISSUE, PRAISE) rendered as virtual text
+- Typed comments (ISSUE, NOTE) rendered as virtual text
 - Comments follow line movements automatically via extmarks
 - Export all comments as LLM-optimized markdown in one shot
 - Navigate between comments with `:NitNext` / `:NitPrev`
@@ -77,15 +77,15 @@ Exported markdown is optimized for LLM consumption with context included:
 ```markdown
 I reviewed your code and have the following comments. Please address them.
 
-Comment types: ISSUE (problems to fix), SUGGESTION (improvements), NOTE (observations), PRAISE (positive feedback)
+Comment types: ISSUE (problems to fix), NOTE (observations)
 
 1. **[ISSUE]** `src/auth.lua:42` - Magic number should be a constant
    > `if attempts > 5 then`
-2. **[SUGGESTION]** `src/auth.lua:87` - Consider extracting this to a helper function
+2. **[NOTE]** `src/auth.lua:87` - This pattern appears in multiple places
 ```
 
 Each comment includes:
-- Type (ISSUE, SUGGESTION, NOTE, PRAISE)
+- Type (ISSUE, NOTE)
 - File path and line number
 - Your comment text
 - Original line context (truncated to 60 chars)
